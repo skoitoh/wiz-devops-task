@@ -65,3 +65,35 @@ resource "aws_cloudfront_distribution" "wiz_cf" {
     Environment = "Dev"
   }
 }
+
+data "aws_iam_policy_document" "s3_policy" {
+  statement {
+    sid    = "AllowCloudFrontAccess"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["cloudfront.amazonaws.com"]
+    }
+
+    actions = [
+      "s3:GetObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.wiz_bucket.arn}/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceArn"
+      values   = [aws_cloudfront_distribution.wiz_cf.arn]
+    }
+  }
+}
+
+resource "aws_s3_bucket_policy" "wiz_policy" {
+  bucket = aws_s3_bucket.wiz_bucket.id
+  policy = data.aws_iam_policy_document.s3_policy.json
+}
+
